@@ -36,6 +36,15 @@ def download_image(url, folder='images/'):
     return filepath
 
 
+def download_comments(comments, filename, folder='comments/'):
+    os.makedirs(folder, exist_ok=True)
+
+    filepath = os.path.join(folder, f'Комментарии к книге {filename}.txt')
+
+    with open(filepath, 'w') as file:
+        file.write(comments)
+
+
 def check_for_redirect(response):
     if response.history:
         if response.url == 'https://tululu.org/':
@@ -56,16 +65,24 @@ def main():
             soup = BeautifulSoup(response.text, 'lxml')
             book_tag = soup.find('h1').text
             img_tag = soup.find(class_='bookimage').find('img')['src']
+
             title, _ = book_tag.split('::')
 
             download_url = f'{site_url}txt.php?id={id + 1}'
             unique_title = f'{id + 1}. {title.strip()}'
 
-            filepath = download_txt(download_url, unique_title)
-            print(filepath)
+            book_filepath = download_txt(download_url, unique_title)
 
-            filepath = download_image(urljoin(site_url, img_tag))
-            print(filepath)
+
+            comment_tag = soup.find_all(class_='texts')
+            if comment_tag:
+                book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
+                download_comments(book_comments, unique_title)
+
+
+            #
+            # filepath = download_image(urljoin(site_url, img_tag))
+            # print(filepath)
 
 
         except requests.HTTPError as exp:
