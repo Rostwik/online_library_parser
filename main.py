@@ -57,7 +57,7 @@ def main():
     for id in range(10):
         try:
             title_url = f'{site_url}b{id + 1}'
-            print(title_url)
+
             response = requests.get(title_url)
             response.raise_for_status()
             check_for_redirect(response)
@@ -67,18 +67,21 @@ def main():
             img_tag = soup.find(class_='bookimage').find('img')['src']
 
             title, _ = book_tag.split('::')
-
             download_url = f'{site_url}txt.php?id={id + 1}'
             unique_title = f'{id + 1}. {title.strip()}'
 
             book_filepath = download_txt(download_url, unique_title)
-
 
             comment_tag = soup.find_all(class_='texts')
             if comment_tag:
                 book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
                 download_comments(book_comments, unique_title)
 
+            genre_tag = soup.find('span', class_='d_book')
+            if genre_tag:
+                genre_list = [genre.text for genre in genre_tag.find_all('a')]
+                print(f'Заголовок: {unique_title}')
+                print(genre_list)
 
             #
             # filepath = download_image(urljoin(site_url, img_tag))
