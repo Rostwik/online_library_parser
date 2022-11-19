@@ -4,6 +4,7 @@ import requests
 from bs4 import BeautifulSoup
 from pathvalidate import sanitize_filename
 from urllib.parse import urljoin, urlparse, urlsplit
+import argparse
 
 
 def parse_book_page(soup):
@@ -66,8 +67,6 @@ def download_comments(comments, filename, folder='comments/'):
     os.makedirs(folder, exist_ok=True)
 
     filepath = os.path.join(folder, f'Комментарии к книге {sanitize_filename(filename)}.txt')
-    print(filepath)
-    print(comments)
 
     with open(filepath, 'w') as file:
         file.write(comments)
@@ -80,27 +79,40 @@ def check_for_redirect(response):
 
 
 def main():
+    parser = argparse.ArgumentParser(description='''Программа скачивает книги в формате txt,'
+                                                 а также обложки и комментарии в отдельные папки.
+                                                 Для работы программы в командной строке необходимо ввести
+                                                 два обязательных параметра: id начала и id окончания интервала
+                                                 скачиваемых книг.
+                                                 ''')
+    parser.add_argument('--start_id', help='Начало интервала', type=int, default=1)
+    parser.add_argument('--end_id', help='Конец интервала', type=int, default=10)
+    args = parser.parse_args()
+
     site_url = 'https://tululu.org/'
 
-    for id in range(10):
+    for id in range(args.start_id, args.end_id + 1):
         try:
-            title_url = f'{site_url}b{id + 1}'
+            book_url = f'{site_url}b{id}'
 
-            response = requests.get(title_url)
+            response = requests.get(book_url)
             response.raise_for_status()
             check_for_redirect(response)
 
             soup = BeautifulSoup(response.text, 'lxml')
             book_info = parse_book_page(soup)
 
-            unique_title = f"{id + 1}. {book_info['title']}"
-            download_url = f'{site_url}txt.php?id={id + 1}'
-            download_txt(download_url, unique_title)
+            unique_title = f"{id}. {book_info['title']}"
+            txt_url = f'{site_url}txt.php?id={id}'
+            download_txt(txt_url, unique_title)
 
             download_image(urljoin(site_url, book_info['img_url']))
-
             if book_info['book_comments']:
                 download_comments(book_info['book_comments'], unique_title)
+
+            print(f"Название: {book_info['title']}")
+            print(f"Автор: {book_info['author']}")
+            print(f"Жанр: {book_info['genres']}\n")
 
         except requests.HTTPError as exp:
             print(exp)
