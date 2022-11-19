@@ -17,17 +17,20 @@ def parse_book_page(soup):
     book_info['author'] = author.strip()
 
     comment_tag = soup.find_all(class_='texts')
+    book_info['book_comments'] = []
     if comment_tag:
         book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
         book_info['book_comments'] = book_comments
 
     genre_tag = soup.find('span', class_='d_book')
+
+    book_info['genres'] = []
     if genre_tag:
         genre_list = [genre.text for genre in genre_tag.find_all('a')]
         book_info['genres'] = genre_list
 
+    return book_info
 
-    print(book_info)
 
 def download_txt(url, filename, folder='books/'):
     os.makedirs(folder, exist_ok=True)
@@ -62,7 +65,9 @@ def download_image(url, folder='images/'):
 def download_comments(comments, filename, folder='comments/'):
     os.makedirs(folder, exist_ok=True)
 
-    filepath = os.path.join(folder, f'Комментарии к книге {filename}.txt')
+    filepath = os.path.join(folder, f'Комментарии к книге {sanitize_filename(filename)}.txt')
+    print(filepath)
+    print(comments)
 
     with open(filepath, 'w') as file:
         file.write(comments)
@@ -71,7 +76,7 @@ def download_comments(comments, filename, folder='comments/'):
 def check_for_redirect(response):
     if response.history:
         if response.url == 'https://tululu.org/':
-            raise requests.HTTPError(response.url)
+            raise requests.HTTPError(f'Книги нет, редирект на {response.url}')
 
 
 def main():
@@ -86,14 +91,16 @@ def main():
             check_for_redirect(response)
 
             soup = BeautifulSoup(response.text, 'lxml')
-            parse_book_page(soup)
-            # book_info['unique_title'] = f'{id + 1}. {title.strip()}'
-            # download_url = f'{site_url}txt.php?id={id + 1}'
-            # book_filepath = download_txt(download_url, unique_title)
-            # #
-            # # filepath = download_image(urljoin(site_url, img_tag))
-            # # print(filepath)
-            # download_comments(book_comments, unique_title)
+            book_info = parse_book_page(soup)
+
+            unique_title = f"{id + 1}. {book_info['title']}"
+            download_url = f'{site_url}txt.php?id={id + 1}'
+            download_txt(download_url, unique_title)
+
+            download_image(urljoin(site_url, book_info['img_url']))
+
+            if book_info['book_comments']:
+                download_comments(book_info['book_comments'], unique_title)
 
         except requests.HTTPError as exp:
             print(exp)
