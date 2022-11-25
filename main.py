@@ -1,4 +1,5 @@
 import os
+import time
 
 import requests
 from bs4 import BeautifulSoup
@@ -8,36 +9,34 @@ import argparse
 
 
 def parse_book_page(soup):
-    book_info = dict()
-
-    book_info['img_url'] = soup.find(class_='bookimage').find('img')['src']
-
     book_tag = soup.find('h1').text
     title, author = book_tag.split('::')
-    book_info['title'] = title.strip()
-    book_info['author'] = author.strip()
+
+    book_download_attributes = {
+        'title': title.strip(),
+        'author': author.strip(),
+        'img_url': soup.find(class_='bookimage').find('img')['src']
+    }
 
     comment_tag = soup.find_all(class_='texts')
-    book_info['book_comments'] = []
-    if comment_tag:
-        book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
-        book_info['book_comments'] = book_comments
+    book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
+    book_download_attributes['book_comments'] = book_comments
 
     genre_tag = soup.find('span', class_='d_book')
+    book_download_attributes['genres'] = [genre.text for genre in genre_tag.find_all('a')]
 
-    book_info['genres'] = []
-    if genre_tag:
-        genre_list = [genre.text for genre in genre_tag.find_all('a')]
-        book_info['genres'] = genre_list
-
-    return book_info
+    return book_download_attributes
 
 
-def download_txt(url, filename, folder='books/'):
+def download_txt(url, id, filename, folder='books/'):
     os.makedirs(folder, exist_ok=True)
 
-    response = requests.get(url)
+    payload = {
+        'id': id
+    }
+    response = requests.get(url, params=payload)
     response.raise_for_status()
+    check_for_redirect(response)
 
     filepath = os.path.join(folder, f'{sanitize_filename(filename)}.txt')
 
@@ -74,8 +73,7 @@ def download_comments(comments, filename, folder='comments/'):
 
 def check_for_redirect(response):
     if response.history:
-        if response.url == 'https://tululu.org/':
-            raise requests.HTTPError(f'Книги нет, редирект на {response.url}')
+        raise requests.HTTPError(f'Книги нет, редирект на {response.url}')
 
 
 def main():
@@ -91,31 +89,34 @@ def main():
 
     site_url = 'https://tululu.org/'
 
-    for id in range(args.start_id, args.end_id + 1):
+    for book_number in range(args.start_id, args.end_id + 1):
         try:
-            book_url = f'{site_url}b{id}'
+            book_url = f'{site_url}b{book_number}/'
 
             response = requests.get(book_url)
             response.raise_for_status()
             check_for_redirect(response)
 
             soup = BeautifulSoup(response.text, 'lxml')
-            book_info = parse_book_page(soup)
+            book_download_attributes = parse_book_page(soup)
 
-            unique_title = f"{id}. {book_info['title']}"
-            txt_url = f'{site_url}txt.php?id={id}'
-            download_txt(txt_url, unique_title)
+            unique_title = f"{book_number}. {book_download_attributes['title']}"
+            txt_url = f'{site_url}txt.php'
+            download_txt(txt_url, book_number, unique_title)
 
-            download_image(urljoin(site_url, book_info['img_url']))
-            if book_info['book_comments']:
-                download_comments(book_info['book_comments'], unique_title)
+            download_image(urljoin(book_url, book_download_attributes['img_url']))
+            if book_download_attributes['book_comments']:
+                download_comments(book_download_attributes['book_comments'], unique_title)
 
-            print(f"Название: {book_info['title']}")
-            print(f"Автор: {book_info['author']}")
-            print(f"Жанр: {book_info['genres']}\n")
+            print(f"Название: {book_download_attributes['title']}")
+            print(f"Автор: {book_download_attributes['author']}")
+            print(f"Жанр: {book_download_attributes['genres']}\n")
 
         except requests.HTTPError as exp:
             print(exp)
+        except requests.exceptions.ConnectionError:
+            print('Интернет исчез')
+            time.sleep(5)
 
 
 if __name__ == '__main__':
