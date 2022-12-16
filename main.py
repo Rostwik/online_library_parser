@@ -38,7 +38,7 @@ def download_txt(url, id, filename, folder='books/'):
     response.raise_for_status()
     check_for_redirect(response)
 
-    filepath = os.path.join(folder, f'{sanitize_filename(filename)}.txt')
+    filepath = os.path.join(folder, f'книга {id} {sanitize_filename(filename)}.txt')
 
     with open(filepath, 'wb') as file:
         file.write(response.content)
@@ -73,6 +73,7 @@ def download_comments(comments, filename, folder='comments/'):
 
 def check_for_redirect(response):
     if response.history:
+        print(response.history)
         raise requests.HTTPError(f'Книги нет, редирект на {response.url}')
 
 
