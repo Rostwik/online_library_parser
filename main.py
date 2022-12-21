@@ -15,15 +15,15 @@ def parse_book_page(soup):
     book_download_attributes = {
         'title': title.strip(),
         'author': author.strip(),
-        'img_url': soup.find(class_='bookimage').find('img')['src']
+        'img_url': soup.select_one('.bookimage img')['src']
     }
 
-    comment_tag = soup.find_all(class_='texts')
-    book_comments = '\n'.join([comment.find(class_='black').text for comment in comment_tag])
+    comment_tag = soup.select('.texts .black')
+    book_comments = '\n'.join([comment.text for comment in comment_tag])
     book_download_attributes['book_comments'] = book_comments
 
-    genre_tag = soup.find('span', class_='d_book')
-    book_download_attributes['genres'] = [genre.text for genre in genre_tag.find_all('a')]
+    genre_tag = soup.select('span.d_book a')
+    book_download_attributes['genres'] = [genre.text for genre in genre_tag]
 
     return book_download_attributes
 

@@ -13,13 +13,13 @@ for page in range(2):
     response.raise_for_status()
 
     soup = BeautifulSoup(response.text, 'lxml')
-    book_tags = soup.find_all(class_='d_book')
+    book_tags = soup.select('.d_book .bookimage a')
 
     for book in book_tags:
 
         try:
-            book_url = urljoin(page_url, book.find('a')['href'])
-
+            book_url = urljoin(page_url, book['href'])
+            print(book_url)
             response = requests.get(book_url)
             response.raise_for_status()
             check_for_redirect(response)
@@ -34,14 +34,8 @@ for page in range(2):
             book_download_attributes['book_path'] = download_txt(txt_url, book_number, unique_title)
 
             book_download_attributes['img_url'] = download_image(urljoin(book_url, book_download_attributes['img_url']))
-            if book_download_attributes['book_comments']:
-                download_comments(book_download_attributes['book_comments'], unique_title)
 
-            print(f"Название: {book_download_attributes['title']}")
-            print(f"Автор: {book_download_attributes['author']}")
-            print(f"Автор: {book_download_attributes['img_url']}")
-            print(f"Автор: {book_download_attributes['book_path']}")
-            print(f"Жанр: {book_download_attributes['genres']}\n")
+            print(book_download_attributes)
 
             books_json = json.dumps(book_download_attributes, ensure_ascii=False)
 
