@@ -28,7 +28,8 @@ def parse_book_page(soup):
     return book_download_attributes
 
 
-def download_txt(url, id, filename, folder='books/'):
+def download_txt(url, id, filename, path):
+    folder = os.path.join(path,'books/')
     os.makedirs(folder, exist_ok=True)
 
     payload = {
@@ -46,7 +47,8 @@ def download_txt(url, id, filename, folder='books/'):
     return filepath
 
 
-def download_image(url, folder='images/'):
+def download_image(url, path):
+    folder = os.path.join(path, 'images/')
     os.makedirs(folder, exist_ok=True)
 
     filename = urlsplit(url).path.split('/')[-1]

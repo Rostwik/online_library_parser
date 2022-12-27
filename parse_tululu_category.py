@@ -1,3 +1,4 @@
+import os
 import time
 
 import requests
@@ -19,7 +20,22 @@ parser = argparse.ArgumentParser(description='''Программа скачив�
                                                  ''')
 parser.add_argument('--start_page', help='Начало интервала', type=int, default=1)
 parser.add_argument('--end_page', help='Конец интервала', type=int, default=10)
+parser.add_argument(
+    '--dest_folder',
+    help='путь к каталогу с результатами парсинга: картинкам, книгам, JSON',
+    type=str,
+    default=''
+)
+parser.add_argument('--skip_imgs', help='Не скачивать картинки', action='store_false', default=True)
+parser.add_argument('--skip_txt', help='Не скачивать книги', action='store_false', default=True)
+parser.add_argument('--json_path', help='указать свой путь к *.json файлу с результатами', type=str, default='')
 args = parser.parse_args()
+
+if args.json_path:
+    path = args.json_path
+else:
+    path = args.dest_folder
+jsonpath = os.path.join(path, 'books.json')
 
 for page in range(args.start_page, args.end_page):
 
@@ -46,13 +62,19 @@ for page in range(args.start_page, args.end_page):
             txt_url = 'https://tululu.org/txt.php'
             book_number = urlsplit(book_url).path.replace('b', '').split('/')[1]
 
-            book_download_attributes['book_path'] = download_txt(txt_url, book_number, unique_title)
+            if args.skip_txt:
+                book_download_attributes['book_path'] = download_txt(
+                    txt_url, book_number, unique_title, args.dest_folder
+                )
 
-            book_download_attributes['img_url'] = download_image(urljoin(book_url, book_download_attributes['img_url']))
+            if args.skip_imgs:
+                book_download_attributes['img_url'] = download_image(
+                    urljoin(book_url, book_download_attributes['img_url']), args.dest_folder
+                )
 
             books_json = json.dumps(book_download_attributes, ensure_ascii=False)
 
-            with open("books.json", "a") as file:
+            with open(jsonpath, "a") as file:
                 file.write(books_json)
 
         except requests.HTTPError as exp:
