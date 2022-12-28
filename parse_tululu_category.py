@@ -73,7 +73,6 @@ for page in range(args.start_page, args.end_page):
                 )
 
             books_json = json.dumps(book_download_attributes, ensure_ascii=False)
-
             with open(jsonpath, "a") as file:
                 file.write(books_json)
 
