@@ -11,19 +11,16 @@ import argparse
 def parse_book_page(soup):
     book_tag = soup.find('h1').text
     title, author = book_tag.split('::')
+    comment_tag = soup.select('.texts .black')
+    genre_tag = soup.select('span.d_book a')
 
     book_download_attributes = {
         'title': title.strip(),
         'author': author.strip(),
-        'img_url': soup.select_one('.bookimage img')['src']
+        'img_url': soup.select_one('.bookimage img')['src'],
+        'book_comments': '\n'.join([comment.text for comment in comment_tag]),
+        'genres': [genre.text for genre in genre_tag]
     }
-
-    comment_tag = soup.select('.texts .black')
-    book_comments = '\n'.join([comment.text for comment in comment_tag])
-    book_download_attributes['book_comments'] = book_comments
-
-    genre_tag = soup.select('span.d_book a')
-    book_download_attributes['genres'] = [genre.text for genre in genre_tag]
 
     return book_download_attributes
 
@@ -75,7 +72,6 @@ def download_comments(comments, filename, folder='comments/'):
 
 def check_for_redirect(response):
     if response.history:
-        print(response.history)
         raise requests.HTTPError(f'Книги нет, редирект на {response.url}')
 
 
