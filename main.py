@@ -26,7 +26,7 @@ def parse_book_page(soup):
 
 
 def download_txt(url, id, filename, path):
-    folder = os.path.join(path,'books/')
+    folder = os.path.join(path, 'books/')
     os.makedirs(folder, exist_ok=True)
 
     payload = {

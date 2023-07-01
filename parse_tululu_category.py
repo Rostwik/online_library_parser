@@ -40,6 +40,8 @@ def main():
         path = args.dest_folder
     jsonpath = os.path.join(path, 'books.json')
 
+    books_download_attributes = []
+
     for page in range(args.start_page, args.end_page):
 
         try:
@@ -57,7 +59,6 @@ def main():
                 try:
 
                     book_url = urljoin(page_url, book['href'])
-                    print(book_url)
                     response = requests.get(book_url)
                     response.raise_for_status()
                     check_for_redirect(response)
@@ -79,8 +80,7 @@ def main():
                             urljoin(book_url, book_download_attributes['img_url']), args.dest_folder
                         )
 
-                    with open(jsonpath, "a") as file:
-                        json.dump(book_download_attributes, file, ensure_ascii=False)
+                    books_download_attributes.append(book_download_attributes)
 
                 except requests.HTTPError as exp:
                     sys.stderr.write(f'{exp}\n')
@@ -93,6 +93,9 @@ def main():
         except requests.exceptions.ConnectionError:
             print('Интернет исчез')
             time.sleep(5)
+
+    with open(jsonpath, "a") as file:
+        json.dump(books_download_attributes, file, ensure_ascii=False)
 
 
 if __name__ == '__main__':
